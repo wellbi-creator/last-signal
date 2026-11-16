@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { WORLD_PIXELS } from '../../src/config.ts';
-import { CommandProcessor } from '../../src/core/Commands.ts';
-import type { Command } from '../../src/core/Commands.ts';
-import { createCore } from '../../src/core/Core.ts';
-import { LOCAL_PLAYER_ID, getPlayer } from '../../src/core/GameState.ts';
+import { WORLD_PIXELS } from '../src/config.ts';
+import { CommandProcessor } from '../src/core/Commands.ts';
+import type { Command } from '../src/core/Commands.ts';
+import { createCore } from '../src/core/Core.ts';
+import { LOCAL_PLAYER_ID, getPlayer } from '../src/core/GameState.ts';
 
 function setPosition(x: number, y: number, playerId = LOCAL_PLAYER_ID): Command {
   return { type: 'SET_PLAYER_POSITION', playerId, tick: 0, position: { x, y } };

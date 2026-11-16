@@ -1,5 +1,5 @@
 import type Phaser from 'phaser';
-import type { Core } from '../core/Core.ts';
+import type { Core } from './core/Core.ts';
 
 /** Под этим ключом ядро лежит в реестре Phaser (общем для всех сцен). */
 export const CORE_REGISTRY_KEY = 'core';

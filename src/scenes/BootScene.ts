@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import { createCore } from '../core/Core.ts';
-import { CORE_REGISTRY_KEY } from './coreAccess.ts';
-import { SCENE_KEYS } from './keys.ts';
+import { CORE_REGISTRY_KEY } from '../coreAccess.ts';
+import { SCENE_KEYS } from '../keys.ts';
 
 /** Seed демонстрационного мира M0. Используется только для проверки каркаса. */
 export const DEMO_SEED = 'M0-DEMO';

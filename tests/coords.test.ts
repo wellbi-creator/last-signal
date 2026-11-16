@@ -5,7 +5,7 @@ import {
   WORLD_CHUNKS,
   WORLD_PIXELS,
   WORLD_TILES,
-} from '../../src/config.ts';
+} from '../src/config.ts';
 import {
   getWorldSpawnPoint,
   isPointInWorld,
@@ -15,7 +15,7 @@ import {
   tileToLocal,
   tileToWorldCenter,
   worldToTile,
-} from '../../src/core/coords.ts';
+} from '../src/core/coords.ts';
 
 describe('константы мира (утверждённые решения)', () => {
   it('мир 256×256 тайлов из чанков 32×32 по 32 пикселя', () => {

@@ -1,12 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { SAVE_FORMAT_VERSION } from '../../src/config.ts';
-import { createCore } from '../../src/core/Core.ts';
+import { SAVE_FORMAT_VERSION } from '../src/config.ts';
+import { createCore } from '../src/core/Core.ts';
 import {
   LOCAL_PLAYER_ID,
   cloneState,
   createInitialState,
   getPlayer,
-} from '../../src/core/GameState.ts';
+} from '../src/core/GameState.ts';
 
 describe('createInitialState', () => {
   it('создаёт состояние нового мира с игроком в центре', () => {

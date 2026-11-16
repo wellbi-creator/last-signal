@@ -2,8 +2,8 @@ import Phaser from 'phaser';
 import { APP_NAME, APP_VERSION, COLORS } from '../config.ts';
 import { Rng } from '../core/Rng.ts';
 import { isTouchDevice } from '../platform.ts';
-import { getCore } from './coreAccess.ts';
-import { SCENE_KEYS } from './keys.ts';
+import { getCore } from '../coreAccess.ts';
+import { SCENE_KEYS } from '../keys.ts';
 
 /**
  * Экран M0 (каркас). Настоящее главное меню (новый мир, загрузка, настройки) появится на этапе M6,
