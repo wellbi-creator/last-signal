@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { SAVE_FORMAT_VERSION } from '../src/config.ts';
+import { SAVE_FORMAT_VERSION, WORLD_GEN_VERSION } from '../src/config.ts';
 import { createCore } from '../src/core/Core.ts';
 import {
   LOCAL_PLAYER_ID,
@@ -13,6 +13,7 @@ describe('createInitialState', () => {
     const state = createInitialState({ worldSeed: 'abc' });
     expect(state.version).toBe(SAVE_FORMAT_VERSION);
     expect(state.worldSeed).toBe('abc');
+    expect(state.worldGenVersion).toBe(WORLD_GEN_VERSION);
     expect(state.tick).toBe(0);
     expect(getPlayer(state, LOCAL_PLAYER_ID)?.position).toEqual({ x: 4096, y: 4096 });
   });
@@ -30,6 +31,25 @@ describe('createInitialState', () => {
     const state = createInitialState({ worldSeed: 's', spawn });
     spawn.x = 999;
     expect(getPlayer(state, LOCAL_PLAYER_ID)?.position).toEqual({ x: 100, y: 200 });
+  });
+});
+
+describe('версия генератора мира (решение D3)', () => {
+  it('начальная версия равна 1 и хранится в состоянии вместе с seed', () => {
+    expect(WORLD_GEN_VERSION).toBe(1);
+    const state = createInitialState({ worldSeed: 'abc' });
+    expect(state.worldGenVersion).toBe(1);
+    expect(Number.isInteger(state.worldGenVersion)).toBe(true);
+  });
+
+  it('переживает JSON-круг и копирование', () => {
+    const state = createInitialState({ worldSeed: 'abc' });
+    expect(JSON.parse(JSON.stringify(state)).worldGenVersion).toBe(WORLD_GEN_VERSION);
+    expect(cloneState(state).worldGenVersion).toBe(WORLD_GEN_VERSION);
+  });
+
+  it('createCore создаёт состояние с версией генератора', () => {
+    expect(createCore({ worldSeed: 'M0-DEMO' }).state.worldGenVersion).toBe(WORLD_GEN_VERSION);
   });
 });
 

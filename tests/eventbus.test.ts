@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { EventBus } from '../src/core/EventBus.ts';
+import type { GameEvents } from '../src/core/events.ts';
 
 type TestEvents = {
   ping: { n: number };
@@ -121,5 +122,22 @@ describe('EventBus', () => {
     const { bus } = createBus();
     bus.emit('pong', { text: 'никого нет' });
     expect(bus.listenerCount('pong')).toBe(0);
+  });
+});
+
+describe('события чанков (M1)', () => {
+  it('chunk:loaded и chunk:unloaded несут координаты чанка и доставляются подписчикам', () => {
+    const bus = new EventBus<GameEvents>();
+    const log: string[] = [];
+    bus.on('chunk:loaded', ({ cx, cy }) => log.push(`loaded ${cx},${cy}`));
+    bus.on('chunk:unloaded', ({ cx, cy }) => log.push(`unloaded ${cx},${cy}`));
+    bus.emit('chunk:loaded', { cx: 3, cy: 4 });
+    bus.emit('chunk:unloaded', { cx: 3, cy: 4 });
+    expect(log).toEqual(['loaded 3,4', 'unloaded 3,4']);
+  });
+
+  it('данные события сериализуемы', () => {
+    const payload: GameEvents['chunk:loaded'] = { cx: 1, cy: 2 };
+    expect(JSON.parse(JSON.stringify(payload))).toEqual(payload);
   });
 });

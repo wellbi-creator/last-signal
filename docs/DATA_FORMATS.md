@@ -11,6 +11,8 @@
 | Чанк                      | целые `(cx, cy)`                | содержит тайлы `[cx*32, (cx+1)*32)`                    |
 | Индекс тайла в чанке      | `ly * 32 + lx`                  | `localTileIndex(lx, ly)`                               |
 
+Помощники для чанков и мира (M1.1, `src/core/coords.ts`): `worldTileIndex(tx, ty)` — индекс клетки в плоском массиве всего мира (по строкам; вне мира — `RangeError`), `isChunkInWorld`, `chunkOriginTile`, `chunkRectWorld`, `chunkCenterWorld`, `chunksInRadius(cx, cy, radius)` — только чанки внутри мира, порядок: по квадрату расстояния, затем `cx`, затем `cy`.
+
 Размеры: тайл 32 px, чанк 32×32 тайла, мир 8×8 чанков = 256×256 тайлов = 8192×8192 px. Все преобразования только через `src/core/coords.ts`. Деление «вниз» (`Math.floor`), в том числе для отрицательных значений.
 
 ## 2. Идентификаторы
@@ -37,6 +39,7 @@ interface GameState {
   version: number; // SAVE_FORMAT_VERSION
   worldSeed: string; // очищенный текст seed
   tick: number; // такт симуляции
+  worldGenVersion: number; // WORLD_GEN_VERSION: версия алгоритма генерации мира (решение D3)
   players: Record<PlayerId, PlayerState>;
 }
 interface PlayerState {
@@ -44,6 +47,8 @@ interface PlayerState {
   position: Vec2; // пиксели мира
 }
 ```
+
+`worldGenVersion` хранится рядом с `worldSeed`: мир однозначно определяется парой (seed, версия генератора). Поле добавлено в формат версии 1 на месте, без миграции (сохранений ещё нет). Любое изменение алгоритма или salt после первого использования требует нового `WORLD_GEN_VERSION`.
 
 Правила: только простые сериализуемые данные (без классов, функций, `Map`/`Set`, ссылок на Phaser). Изменяется только обработчиками команд.
 
@@ -64,6 +69,25 @@ interface PlayerState {
 | `command:applied`  | `{ type, playerId }`         |
 | `command:rejected` | `{ type, playerId, reason }` |
 | `player:moved`     | `{ playerId, position }`     |
+| `chunk:loaded`     | `{ cx, cy }` (M1)            |
+| `chunk:unloaded`   | `{ cx, cy }` (M1)            |
+
+## 6а. Коды тайлов и биомов (M1, `src/systems/world/types.ts`)
+
+Значения хранятся в `Uint8Array` чанка и входят в хеш мира, поэтому не меняются.
+
+| Тайл (`Tile`) | Код | Биом (`Biome`) | Код |
+| ------------- | --- | -------------- | --- |
+| Water         | 0   | Water          | 0   |
+| Sand          | 1   | Coast          | 1   |
+| Grass         | 2   | Plains         | 2   |
+| Forest        | 3   | Forest         | 3   |
+| Stone         | 4   | Rocks          | 4   |
+| Mud           | 5   | Swamp          | 5   |
+| Concrete      | 6   |                |     |
+| Path          | 7   |                |     |
+
+Реестр salt для производных seed — `src/systems/world/salts.ts` (значения заморожены тестом). Правила детерминизма логики (запрет неточных функций `Math`, `**`, обхода `for…in`/`Object.keys` в systems) — в `eslint.config.js` и `tests/architecture.test.ts`.
 
 ## 7. Формат сохранения (проект, реализация в M6)
 
