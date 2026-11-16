@@ -1,0 +1,73 @@
+name: Обновить package-lock.json
+
+# Формирует package-lock.json и коммитит его в ветку. Нужен, когда нет возможности запустить
+# `npm install` локально (например, работа только с телефона).
+#
+# Запускается двумя способами:
+#   1. Автоматически в Pull Request, если в нём изменился package.json (или этот файл).
+#   2. Вручную: GitHub -> Actions -> «Обновить package-lock.json» -> Run workflow ->
+#      в поле Branch выбрать нужную ветку (НЕ main). Ручной запуск доступен после слияния в main.
+#
+# На main и на ветках из форков workflow не работает: изменения main идут только через Pull Request.
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - package.json
+      - .github/workflows/update-lockfile.yml
+
+permissions:
+  contents: write
+  actions: write
+
+concurrency:
+  group: lockfile-${{ github.head_ref || github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  lockfile:
+    if: >-
+      github.ref_name != 'main' &&
+      (github.event_name == 'workflow_dispatch' ||
+      github.event.pull_request.head.repo.full_name == github.repository)
+    runs-on: ubuntu-latest
+    env:
+      BRANCH: ${{ github.head_ref || github.ref_name }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.BRANCH }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      # --package-lock-only: только обновить lock-файл, ничего не устанавливая и не запуская скрипты
+      - name: Сформировать package-lock.json
+        run: npm install --package-lock-only --ignore-scripts
+
+      - name: Закоммитить изменения
+        id: commit
+        run: |
+          if [ -z "$(git status --porcelain -- package-lock.json)" ]; then
+            echo "package-lock.json уже актуален, коммит не нужен."
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add package-lock.json
+          git commit -m "chore: обновить package-lock.json"
+          git push origin "HEAD:${BRANCH}"
+          echo "changed=true" >> "$GITHUB_OUTPUT"
+
+      # Пуш от имени GITHUB_TOKEN не запускает CI сам. Запускаем его через workflow_dispatch,
+      # который для этого случая разрешён.
+      - name: Запустить CI на обновлённой ветке
+        if: steps.commit.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run ci-pages.yml --ref "${BRANCH}"
