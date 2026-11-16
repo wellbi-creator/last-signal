@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { SEED_MAX_LENGTH } from '../../src/config.ts';
-import { generateSeedText, sanitizeSeedText, worldSeedToNumber } from '../../src/core/Seed.ts';
+import { SEED_MAX_LENGTH } from '../src/config.ts';
+import { generateSeedText, sanitizeSeedText, worldSeedToNumber } from '../src/core/Seed.ts';
 
 describe('sanitizeSeedText', () => {
   it('обрезает пробелы и сжимает повторные', () => {

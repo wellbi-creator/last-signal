@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { Rng, hashInts, hashString } from '../../src/core/Rng.ts';
+import { Rng, hashInts, hashString } from '../src/core/Rng.ts';
 
 /*
  * «Золотые» значения получены из независимой канонической реализации mulberry32 и FNV-1a.
