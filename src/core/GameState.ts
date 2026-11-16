@@ -1,4 +1,4 @@
-import { SAVE_FORMAT_VERSION } from '../config.ts';
+import { SAVE_FORMAT_VERSION, WORLD_GEN_VERSION } from '../config.ts';
 import { getWorldSpawnPoint } from './coords.ts';
 import { sanitizeSeedText } from './Seed.ts';
 import type { PlayerId, Tick, Vec2 } from './types.ts';
@@ -26,6 +26,11 @@ export interface GameState {
   version: number;
   /** Канонический (очищенный) текст seed мира. */
   worldSeed: string;
+  /**
+   * Версия алгоритма генерации мира (WORLD_GEN_VERSION). Один и тот же seed при разных версиях
+   * даёт разные миры, поэтому версия хранится вместе с seed.
+   */
+  worldGenVersion: number;
   tick: Tick;
   players: Record<PlayerId, PlayerState>;
 }
@@ -45,6 +50,7 @@ export function createInitialState(options: CreateStateOptions): GameState {
   return {
     version: SAVE_FORMAT_VERSION,
     worldSeed,
+    worldGenVersion: WORLD_GEN_VERSION,
     tick: 0,
     players: {
       [LOCAL_PLAYER_ID]: { id: LOCAL_PLAYER_ID, position: { x: spawn.x, y: spawn.y } },

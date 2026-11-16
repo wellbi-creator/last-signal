@@ -9,6 +9,20 @@ export interface Vec2 {
   y: number;
 }
 
+/** Прямоугольник. В координатах мира это ПИКСЕЛИ МИРА. */
+export interface Rect {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+/** Координаты чанка (целые числа; чанк (0, 0) — левый верхний угол мира). */
+export interface ChunkCoord {
+  cx: number;
+  cy: number;
+}
+
 /** Идентификатор игрока. В одиночной игре v1 всегда LOCAL_PLAYER_ID. */
 export type PlayerId = string;
 

@@ -29,6 +29,13 @@ export const WORLD_PIXELS = WORLD_TILES * TILE_SIZE;
  */
 export const SAVE_FORMAT_VERSION = 1;
 
+/**
+ * Версия алгоритма генерации мира. Хранится в GameState (worldGenVersion), чтобы сохранённый мир
+ * не «поплыл» при правках генератора. Увеличивается при ЛЮБОМ изменении алгоритма, salt или
+ * параметров, влияющих на мир (см. docs/M1_PLAN.md, решение D3 и раздел 7).
+ */
+export const WORLD_GEN_VERSION = 1;
+
 /** Максимальная длина текста seed в символах (кодовых точках). */
 export const SEED_MAX_LENGTH = 64;
 

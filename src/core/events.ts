@@ -1,4 +1,4 @@
-import type { PlayerId, Vec2 } from './types.ts';
+import type { ChunkCoord, PlayerId, Vec2 } from './types.ts';
 
 /**
  * Все события игры в одном месте: опечатка в названии или неверный формат данных не пройдёт
@@ -14,4 +14,8 @@ export type GameEvents = {
   'command:rejected': { type: string; playerId: PlayerId; reason: string };
   /** Игрок переместился (после успешной команды SET_PLAYER_POSITION). */
   'player:moved': { playerId: PlayerId; position: Vec2 };
+  /** Чанк стал активным (данные готовы; брать их через ChunkManager.get). */
+  'chunk:loaded': ChunkCoord;
+  /** Чанк выгружен из активных (отрисовку нужно удалить). */
+  'chunk:unloaded': ChunkCoord;
 };
