@@ -1,11 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import {
-  CHUNK_SIZE,
-  TILE_SIZE,
-  WORLD_CHUNKS,
-  WORLD_PIXELS,
-  WORLD_TILES,
-} from '../src/config.ts';
+import { CHUNK_SIZE, TILE_SIZE, WORLD_CHUNKS, WORLD_PIXELS, WORLD_TILES } from '../src/config.ts';
 import {
   getWorldSpawnPoint,
   isPointInWorld,
