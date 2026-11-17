@@ -1,0 +1,14 @@
+{
+  "elevation": { "scale": 70, "octaves": 4 },
+  "moisture": { "scale": 52, "octaves": 3 },
+  "contrast": 1.7,
+  "edge": { "strength": 0.7, "from": 0.86, "to": 1.0 },
+  "thresholds": {
+    "water": 0.28,
+    "sand": 0.33,
+    "rock": 0.72,
+    "swamp": { "moisture": 0.6, "maxElevation": 0.5 },
+    "forestMoisture": 0.45
+  },
+  "start": { "safeRadius": 12, "blendRadius": 30, "elevation": 0.52, "moisture": 0.38 }
+}

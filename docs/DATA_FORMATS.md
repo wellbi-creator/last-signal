@@ -87,6 +87,12 @@ interface PlayerState {
 | Concrete      | 6   |                |     |
 | Path          | 7   |                |     |
 
+### Параметры рельефа (M1.2, `src/data/worldgen.json`)
+
+Проверяются при загрузке (`src/systems/world/worldData.ts`), ошибка называет путь к полю. Поля: `elevation` и `moisture` (`scale` в тайлах, `octaves` 1…8), `contrast`, `edge` (`strength`, `from`, `to`), `thresholds` (`water` < `sand` < `rock`, `swamp.moisture`, `swamp.maxElevation`, `forestMoisture`), `start` (`safeRadius` < `blendRadius`, `elevation`, `moisture`). Любое изменение значений после релиза требует нового `WORLD_GEN_VERSION`.
+
+Рельеф клетки — чистая функция `(worldSeed, tx, ty)` (`createTerrainSampler`), поэтому на границах чанков швов нет. Классификация: вода → побережье → скалы → болото → лес → равнина (первое совпадение).
+
 Реестр salt для производных seed — `src/systems/world/salts.ts` (значения заморожены тестом). Правила детерминизма логики (запрет неточных функций `Math`, `**`, обхода `for…in`/`Object.keys` в systems) — в `eslint.config.js` и `tests/architecture.test.ts`.
 
 ## 7. Формат сохранения (проект, реализация в M6)
