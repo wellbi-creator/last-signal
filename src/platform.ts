@@ -23,3 +23,29 @@ export function installPlatformGuards(target: Document = document): void {
   }
   target.addEventListener('contextmenu', prevent);
 }
+
+/** Задержки (мс) повторного пересчёта размера после поворота экрана или смены окна. */
+const RESIZE_REFRESH_DELAYS = [0, 150, 500];
+
+/**
+ * Браузеры сообщают о новом размере окна раньше, чем перестраивается вёрстка (`100dvh`, панели
+ * Safari на iPhone): Phaser читает ещё старый размер родителя и остаётся на нём до следующего
+ * события. Поэтому после resize, orientationchange и изменения visualViewport размер
+ * пересчитывается несколько раз с небольшими задержками. Возвращает функцию снятия слушателей.
+ */
+export function installResizeGuard(refresh: () => void, target: Window = window): () => void {
+  const timers: number[] = [];
+  const schedule = (): void => {
+    for (const delay of RESIZE_REFRESH_DELAYS) timers.push(target.setTimeout(refresh, delay));
+    if (timers.length > 30) timers.splice(0, timers.length - 30);
+  };
+  target.addEventListener('resize', schedule);
+  target.addEventListener('orientationchange', schedule);
+  target.visualViewport?.addEventListener('resize', schedule);
+  return () => {
+    target.removeEventListener('resize', schedule);
+    target.removeEventListener('orientationchange', schedule);
+    target.visualViewport?.removeEventListener('resize', schedule);
+    for (const timer of timers) target.clearTimeout(timer);
+  };
+}
