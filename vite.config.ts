@@ -17,5 +17,7 @@ export default defineConfig({
   test: {
     include: ['tests/**/*.test.ts'],
     environment: 'node',
+    // Тесты расстановки объектов генерируют десятки целых миров: на медленном CI запас важнее скорости.
+    testTimeout: 30000,
   },
 });

@@ -1,5 +1,6 @@
 import { CHUNK_SIZE, WORLD_TILES } from '../../config.ts';
 import { isChunkInWorld } from '../../core/coords.ts';
+import { scatterChunk } from './scatter.ts';
 import type { WorldPlan } from './WorldPlan.ts';
 import type { Chunk } from './types.ts';
 
@@ -9,6 +10,7 @@ import type { Chunk } from './types.ts';
  *
  * Чанк (cx, cy) покрывает тайлы [cx·32, cx·32+32) × [cy·32, cy·32+32). Каждая клетка мира
  * принадлежит ровно одному чанку: пропусков и дублей нет (проверяется тестом).
+ * Объекты чанка — результат `scatterChunk` (стартовые, затем слои по приоритету).
  * Массивы чанка — копии, а не ссылки на план: изменение чанка не портит мир.
  */
 export function generateChunk(plan: WorldPlan, cx: number, cy: number): Chunk {
@@ -24,5 +26,5 @@ export function generateChunk(plan: WorldPlan, cx: number, cy: number): Chunk {
     tiles.set(plan.base.tiles.subarray(from, from + CHUNK_SIZE), ly * CHUNK_SIZE);
     biomes.set(plan.base.biomes.subarray(from, from + CHUNK_SIZE), ly * CHUNK_SIZE);
   }
-  return { cx, cy, tiles, biomes, objects: [] };
+  return { cx, cy, tiles, biomes, objects: scatterChunk(plan, cx, cy) };
 }
