@@ -1,0 +1,187 @@
+{
+  "cluster": { "scale": 20, "octaves": 2, "low": 0.35, "high": 1.65 },
+  "start": {
+    "clearRadius": 3,
+    "ringMin": 5,
+    "ringMax": 11,
+    "noScatterRadius": 12,
+    "blockerGap": 3,
+    "items": [
+      { "type": "tree_pine", "count": 8, "min": 6 },
+      { "type": "boulder", "count": 5, "min": 4 },
+      { "type": "bush", "count": 8, "min": 4 }
+    ]
+  },
+  "layers": [
+    {
+      "id": "buildings",
+      "cell": 16,
+      "inset": 1,
+      "blocks": true,
+      "farBonus": 0.5,
+      "minStartDistance": 20,
+      "density": [
+        { "biome": "forest", "p": 0.02 },
+        { "biome": "plains", "p": 0.1 },
+        { "biome": "coast", "p": 0.06 }
+      ],
+      "types": [
+        {
+          "type": "ruin_house_a",
+          "weight": 2,
+          "footprint": [6, 5],
+          "tiles": ["grass", "sand"],
+          "biomes": ["plains", "coast"]
+        },
+        {
+          "type": "ruin_house_b",
+          "weight": 2,
+          "footprint": [5, 4],
+          "tiles": ["grass", "sand"],
+          "biomes": ["plains", "coast"]
+        },
+        {
+          "type": "ruin_shed",
+          "weight": 3,
+          "footprint": [3, 3],
+          "tiles": ["grass", "sand", "forest"],
+          "biomes": ["plains", "coast", "forest"]
+        }
+      ]
+    },
+    {
+      "id": "deposits",
+      "cell": 8,
+      "inset": 1,
+      "blocks": true,
+      "farBonus": 0.6,
+      "minStartDistance": 16,
+      "density": [
+        { "biome": "rocks", "p": 0.35 },
+        { "biome": "coast", "p": 0.2 },
+        { "biome": "plains", "p": 0.12 },
+        { "biome": "swamp", "p": 0.3 }
+      ],
+      "types": [
+        {
+          "type": "iron_ore",
+          "weight": 1,
+          "footprint": [2, 2],
+          "tiles": ["stone"],
+          "biomes": ["rocks"]
+        },
+        {
+          "type": "scrap_pile",
+          "weight": 1,
+          "footprint": [2, 2],
+          "tiles": ["grass", "sand"],
+          "biomes": ["coast", "plains"]
+        },
+        {
+          "type": "peat",
+          "weight": 1,
+          "footprint": [2, 2],
+          "tiles": ["mud"],
+          "biomes": ["swamp"]
+        }
+      ]
+    },
+    {
+      "id": "trees",
+      "cell": 4,
+      "inset": 1,
+      "blocks": true,
+      "farBonus": 0,
+      "minStartDistance": 0,
+      "density": [
+        { "biome": "forest", "p": 0.65 },
+        { "biome": "plains", "p": 0.08 },
+        { "biome": "rocks", "p": 0.02 },
+        { "biome": "swamp", "p": 0.15 }
+      ],
+      "types": [
+        {
+          "type": "tree_pine",
+          "weight": 6,
+          "footprint": [1, 1],
+          "tiles": ["grass", "forest", "stone"],
+          "biomes": ["forest", "plains", "rocks"]
+        },
+        {
+          "type": "tree_dead",
+          "weight": 2,
+          "footprint": [1, 1],
+          "tiles": ["grass", "forest", "mud"],
+          "biomes": ["swamp", "plains"]
+        },
+        {
+          "type": "fallen_log",
+          "weight": 1,
+          "footprint": [2, 1],
+          "tiles": ["forest", "grass"],
+          "biomes": ["forest"]
+        }
+      ]
+    },
+    {
+      "id": "rocks",
+      "cell": 8,
+      "inset": 1,
+      "blocks": true,
+      "farBonus": 0,
+      "minStartDistance": 0,
+      "density": [
+        { "biome": "forest", "p": 0.1 },
+        { "biome": "plains", "p": 0.12 },
+        { "biome": "rocks", "p": 0.7 },
+        { "biome": "coast", "p": 0.1 }
+      ],
+      "types": [
+        {
+          "type": "boulder",
+          "weight": 4,
+          "footprint": [1, 1],
+          "tiles": ["sand", "grass", "forest", "stone"],
+          "biomes": ["coast", "plains", "forest", "rocks"]
+        },
+        {
+          "type": "boulder_large",
+          "weight": 1,
+          "footprint": [2, 2],
+          "tiles": ["stone", "grass"],
+          "biomes": ["rocks", "plains"]
+        }
+      ]
+    },
+    {
+      "id": "bushes",
+      "cell": 4,
+      "inset": 0,
+      "blocks": false,
+      "farBonus": 0,
+      "minStartDistance": 0,
+      "density": [
+        { "biome": "forest", "p": 0.2 },
+        { "biome": "plains", "p": 0.25 },
+        { "biome": "coast", "p": 0.05 },
+        { "biome": "swamp", "p": 0.3 }
+      ],
+      "types": [
+        {
+          "type": "bush",
+          "weight": 5,
+          "footprint": [1, 1],
+          "tiles": ["sand", "grass", "forest", "mud"],
+          "biomes": ["coast", "plains", "forest", "swamp"]
+        },
+        {
+          "type": "reeds",
+          "weight": 2,
+          "footprint": [1, 1],
+          "tiles": ["sand", "mud"],
+          "biomes": ["coast", "swamp"]
+        }
+      ]
+    }
+  ]
+}

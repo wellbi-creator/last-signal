@@ -1,4 +1,6 @@
 import worldgenJson from '../../data/worldgen.json' with { type: 'json' };
+import { asObject as checkObject, numberField } from './dataCheck.ts';
+import type { Fail } from './dataCheck.ts';
 
 /**
  * Параметры генерации рельефа (src/data/worldgen.json) и их строгая проверка.
@@ -39,11 +41,12 @@ export class WorldDataError extends Error {
   }
 }
 
+const fail: Fail = (path, problem) => {
+  throw new WorldDataError(path, problem);
+};
+
 function asObject(value: unknown, path: string): Record<string, unknown> {
-  if (typeof value !== 'object' || value === null || Array.isArray(value)) {
-    throw new WorldDataError(path, 'должно быть объектом');
-  }
-  return value as Record<string, unknown>;
+  return checkObject(value, path, fail);
 }
 
 function number(
@@ -54,16 +57,7 @@ function number(
   max: number,
   integer = false,
 ): number {
-  const full = `${path}.${key}`;
-  const value = parent[key];
-  if (typeof value !== 'number' || !Number.isFinite(value)) {
-    throw new WorldDataError(full, 'должно быть конечным числом');
-  }
-  if (integer && !Number.isInteger(value)) throw new WorldDataError(full, 'должно быть целым');
-  if (value < min || value > max) {
-    throw new WorldDataError(full, `должно быть в диапазоне ${min}…${max}, получено ${value}`);
-  }
-  return value;
+  return numberField(parent, key, path, fail, min, max, integer);
 }
 
 function parseNoise(raw: unknown, path: string): NoiseParams {

@@ -35,7 +35,6 @@ describe('generateChunk: координаты и границы', () => {
       expect([chunk.cx, chunk.cy]).toEqual([cx, cy]);
       expect(chunk.tiles).toHaveLength(CHUNK_SIZE * CHUNK_SIZE);
       expect(chunk.biomes).toHaveLength(CHUNK_SIZE * CHUNK_SIZE);
-      expect(chunk.objects).toEqual([]);
       for (let ly = 0; ly < CHUNK_SIZE; ly++) {
         for (let lx = 0; lx < CHUNK_SIZE; lx++) {
           const world = (cy * CHUNK_SIZE + ly) * WORLD_TILES + cx * CHUNK_SIZE + lx;
@@ -81,12 +80,13 @@ describe('generateChunk: координаты и границы', () => {
   it('чанк не ссылается на план: изменение чанка не портит последующую генерацию', () => {
     const a = generateChunk(plan, 3, 3);
     const before = hashChunk(a);
+    const objectsBefore = a.objects.length;
     a.tiles.fill(7);
     a.biomes.fill(7);
     a.objects.push({ id: 'x', type: 'x', x: 0, y: 0 });
     const b = generateChunk(plan, 3, 3);
     expect(hashChunk(b)).toBe(before);
-    expect(b.objects).toEqual([]);
+    expect(b.objects).toHaveLength(objectsBefore);
   });
 
   it('отвергает чанки вне мира и нецелые координаты', () => {
