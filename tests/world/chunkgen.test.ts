@@ -3,6 +3,7 @@ import { CHUNK_SIZE, WORLD_CHUNKS, WORLD_GEN_VERSION, WORLD_TILES } from '../../
 import { hashInts } from '../../src/core/Rng.ts';
 import { generateChunk } from '../../src/systems/world/ChunkGenerator.ts';
 import { hashChunk, hashWorld } from '../../src/systems/world/checksum.ts';
+import { GOLDEN_WORLD_HASHES, goldenHashFor } from '../../src/systems/world/goldenHashes.ts';
 import { createWorldPlan } from '../../src/systems/world/WorldPlan.ts';
 import { WorldGenerator } from '../../src/systems/world/WorldGenerator.ts';
 import type { Chunk } from '../../src/systems/world/types.ts';
@@ -151,12 +152,10 @@ describe('WorldGenerator: независимость и детерминизм',
       actual[seed] = new WorldGenerator(seed).worldHash();
     expect(actual).toEqual(GOLDEN_WORLD_HASHES);
   });
-});
 
-// Записаны для WORLD_GEN_VERSION = 1. После M1.5–M1.7 (объекты, точки интереса, тропы)
-// значения записываются заново: в M1.8 фиксируются окончательные.
-const GOLDEN_WORLD_HASHES: Record<string, string> = {
-  'M0-DEMO': 'e777f55e9dc93b72',
-  'LAST SIGNAL': 'de7fb2e1b5de0b10',
-  '12345': '879ac42fea88dcaa',
-};
+  it('goldenHashFor: находит эталон только для известных seed', () => {
+    expect(goldenHashFor('M0-DEMO')).toBe(GOLDEN_WORLD_HASHES['M0-DEMO']);
+    expect(goldenHashFor('неизвестный')).toBeUndefined();
+    expect(goldenHashFor('constructor')).toBeUndefined();
+  });
+});

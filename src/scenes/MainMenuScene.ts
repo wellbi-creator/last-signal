@@ -6,9 +6,9 @@ import { getCore } from '../coreAccess.ts';
 import { SCENE_KEYS } from '../keys.ts';
 
 /**
- * Экран M0 (каркас). Настоящее главное меню (новый мир, загрузка, настройки) появится на этапе M6,
- * поэтому кнопок здесь намеренно нет, чтобы не оставлять неработающих элементов.
- * Экран нужен для проверки каркаса на реальных устройствах:
+ * Экран M0 (каркас). Настоящее главное меню (новый мир, загрузка, настройки) появится на этапе M6;
+ * пока здесь одна рабочая кнопка «Открыть мир» (просмотрщик мира M1, решение D6).
+ * Экран также нужен для проверки каркаса на реальных устройствах:
  * - числа демо-генератора должны совпасть на ПК и iPhone (проверка детерминизма);
  * - строка «касаний» показывает, что мультитач работает (нужно для джойстика и кнопок);
  * - размер экрана обновляется при повороте устройства и изменении окна.
@@ -18,6 +18,7 @@ export class MainMenuScene extends Phaser.Scene {
   private subtitleText!: Phaser.GameObjects.Text;
   private infoText!: Phaser.GameObjects.Text;
   private probeText!: Phaser.GameObjects.Text;
+  private openButton!: Phaser.GameObjects.Text;
 
   constructor() {
     super(SCENE_KEYS.MainMenu);
@@ -36,6 +37,19 @@ export class MainMenuScene extends Phaser.Scene {
     this.infoText = make(COLORS.textDim);
     this.probeText = make(COLORS.text).setText('Коснитесь экрана или нажмите кнопку мыши');
 
+    this.openButton = this.add
+      .text(0, 0, 'Открыть мир', {
+        fontFamily: 'monospace',
+        color: '#0b0f12',
+        backgroundColor: COLORS.accent,
+        padding: { x: 24, y: 14 },
+      })
+      .setOrigin(0.5)
+      .setResolution(dpr)
+      .setInteractive({ useHandCursor: true });
+    this.openButton.on(Phaser.Input.Events.POINTER_UP, this.openWorld, this);
+    this.input.keyboard?.on('keydown-ENTER', this.openWorld, this);
+
     this.refreshInfo();
     this.layout();
 
@@ -47,7 +61,13 @@ export class MainMenuScene extends Phaser.Scene {
     this.scale.on(Phaser.Scale.Events.RESIZE, this.onResize, this);
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       this.scale.off(Phaser.Scale.Events.RESIZE, this.onResize, this);
+      this.input.keyboard?.off('keydown-ENTER', this.openWorld, this);
     });
+  }
+
+  /** Отметка T0 (раздел 9.3 плана): момент нажатия «Открыть мир». */
+  private openWorld(): void {
+    this.scene.start(SCENE_KEYS.Game, { openedAt: performance.now() });
   }
 
   private onResize(): void {
@@ -89,6 +109,7 @@ export class MainMenuScene extends Phaser.Scene {
       .setLineSpacing(unit * 0.4)
       .setPosition(cx, cy + unit * 1.5);
     this.probeText.setFontSize(unit * 0.8).setPosition(cx, cy + unit * 6);
+    this.openButton.setFontSize(Math.max(16, unit * 1.1)).setPosition(cx, cy + unit * 10.5);
     // Длинные строки не должны выходить за край узкого экрана телефона.
     const wrapWidth = Math.max(120, width - unit * 2);
     for (const text of [this.subtitleText, this.infoText, this.probeText]) {
