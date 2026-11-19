@@ -11,6 +11,8 @@ import { goldenHashFor } from '../systems/world/goldenHashes.ts';
 import { WorldGenerator } from '../systems/world/WorldGenerator.ts';
 import type { ChunkSource } from '../systems/world/WorldGenerator.ts';
 import { DebugHud, MAP_SIZE } from '../ui/DebugHud.ts';
+import type { ObjectMode } from '../view/ObjectView.ts';
+import { objectAtlasBuildMs } from '../view/objectTextures.ts';
 import { biomeColor } from '../view/placeholderTextures.ts';
 import { WorldView } from '../view/WorldView.ts';
 
@@ -27,6 +29,7 @@ const MAX_CACHED = 12;
 const KEY_SPEED = 900; // пикселей экрана в секунду
 const MAX_ZOOM = 3;
 const HUD_REFRESH_MS = 250;
+const OBJECT_MODES: readonly ObjectMode[] = ['shown', 'bounds', 'hidden'];
 
 /**
  * Экран M1 — просмотрщик настоящего сгенерированного мира (решение D6).
@@ -46,6 +49,7 @@ export class GameScene extends Phaser.Scene {
   private zoomLevel = 1;
   private verifyNote = '—';
   private worldHash = '';
+  private lastCenter = { x: WORLD_PIXELS / 2, y: WORLD_PIXELS / 2 };
   private openedAt = 0;
   private marks = { plan: 0, firstFrame: 0 };
   private chunkStats = { count: 0, totalMs: 0 };
@@ -111,6 +115,14 @@ export class GameScene extends Phaser.Scene {
       onToggleGrid: () => this.worldView.setGridVisible(!this.worldView.isGridVisible()),
       onToggleBiomes: () =>
         this.worldView.setMode(this.worldView.getMode() === 'biomes' ? 'terrain' : 'biomes'),
+      onCycleObjects: () => {
+        const next =
+          OBJECT_MODES[
+            (OBJECT_MODES.indexOf(this.worldView.getObjectMode()) + 1) % OBJECT_MODES.length
+          ];
+        this.worldView.setObjectMode(next ?? 'shown');
+        this.refreshHud();
+      },
       onVerifyHash: () => this.verifyHash(),
       onMapJump: (fx, fy) => this.cameras.main.centerOn(fx * WORLD_PIXELS, fy * WORLD_PIXELS),
       onCycleZoom: () => this.setZoom(this.zoomLevel >= MAX_ZOOM ? 1 : this.zoomLevel + 1),
@@ -122,6 +134,7 @@ export class GameScene extends Phaser.Scene {
       | Record<string, Phaser.Input.Keyboard.Key>
       | undefined;
     this.input.on(Phaser.Input.Events.POINTER_MOVE, this.onPointerMove, this);
+    this.scale.on(Phaser.Scale.Events.RESIZE, this.onResize, this);
 
     // Первый реально отрисованный кадр с миром (отметка для замера, раздел 9.3 плана).
     this.game.events.once(Phaser.Core.Events.POST_RENDER, () => {
@@ -150,6 +163,7 @@ export class GameScene extends Phaser.Scene {
     }
 
     const center = camera.midPoint;
+    this.lastCenter = { x: center.x, y: center.y };
     const view = camera.worldView;
     this.hud.setViewRect(
       view.x / WORLD_PIXELS,
@@ -165,6 +179,34 @@ export class GameScene extends Phaser.Scene {
       this.hudTimer = 0;
       this.refreshHud();
     }
+  }
+
+  /** После изменения размера окна или поворота камера остаётся на той же точке мира. */
+  private onResize(): void {
+    this.cameras.main.centerOn(this.lastCenter.x, this.lastCenter.y);
+    this.refreshHud();
+  }
+
+  /** Сколько объектов загруженных чанков попадает в кадр (с запасом на высокие спрайты). */
+  private objectsInView(): number {
+    const view = this.cameras.main.worldView;
+    const margin = 3 * TILE_SIZE;
+    let count = 0;
+    for (const chunk of this.manager.loaded()) {
+      for (const o of chunk.objects) {
+        const x = o.x * TILE_SIZE;
+        const y = o.y * TILE_SIZE;
+        if (
+          x > view.x - margin &&
+          x < view.right + margin &&
+          y > view.y - margin &&
+          y < view.bottom + margin + 3 * TILE_SIZE
+        ) {
+          count++;
+        }
+      }
+    }
+    return count;
   }
 
   private onPointerMove(pointer: Phaser.Input.Pointer): void {
@@ -239,20 +281,27 @@ export class GameScene extends Phaser.Scene {
         : golden === worldHash
           ? '✓ эталон ПК'
           : '✗ ОТЛИЧАЕТСЯ от эталона ПК';
-    this.hud.setLines([
-      `M1.4 · seed ${this.seedText} · v${getCore(this).state.worldGenVersion}`,
-      `хеш мира ${worldHash}`,
-      `${okMark} · проверка: ${this.verifyNote}`,
-      `чанк ${cx},${cy} хеш ${chunk === undefined ? '—' : hashChunk(chunk)}`,
-      `центр ${Math.round(center.x)},${Math.round(center.y)} · тайл ${tx},${ty}`,
-      `чанков ${this.manager.loaded().length} · очередь ${this.manager.pendingCount()} · слоёв ${this.worldView.viewCount()}`,
-      `FPS ${fps.toFixed(0)} · кадр ${median.toFixed(1)}/${worst.toFixed(0)} мс`,
-      `план ${this.marks.plan.toFixed(0)} · чанк ${avgChunk.toFixed(2)} · кадр1 ${this.marks.firstFrame.toFixed(0)} мс`,
-      `${this.scale.width}×${this.scale.height} · DPR ${dpr} · ×${this.zoomLevel} · ${renderer}`,
-    ]);
+    let loadedObjects = 0;
+    for (const loaded of this.manager.loaded()) loadedObjects += loaded.objects.length;
+    this.hud.setLines(
+      [
+        `M1.5 · seed ${this.seedText} · v${getCore(this).state.worldGenVersion}`,
+        `хеш ${worldHash} ${okMark.replace(' ПК', '')} · ${this.verifyNote}`,
+        `FPS ${fps.toFixed(0)} · кадр ${median.toFixed(1)}/${worst.toFixed(0)} мс · ×${this.zoomLevel} · ${this.scale.width}×${this.scale.height}`,
+        `объектов ${loadedObjects} · спрайтов ${this.worldView.spriteCount()} · в кадре ${this.objectsInView()}`,
+      ],
+      [
+        `чанк ${cx},${cy} хеш ${chunk === undefined ? '—' : hashChunk(chunk)}`,
+        `центр ${Math.round(center.x)},${Math.round(center.y)} · тайл ${tx},${ty}`,
+        `чанков ${this.manager.loaded().length} · очередь ${this.manager.pendingCount()} · слоёв ${this.worldView.viewCount()}`,
+        `план ${this.marks.plan.toFixed(0)} · чанк ${avgChunk.toFixed(2)} · кадр1 ${this.marks.firstFrame.toFixed(0)} мс`,
+        `атлас объектов ${objectAtlasBuildMs().toFixed(0)} мс · DPR ${dpr} · ${renderer}`,
+      ],
+    );
     this.hud.setButtons({
       grid: this.worldView.isGridVisible(),
       biomes: this.worldView.getMode() === 'biomes',
+      objects: this.worldView.getObjectMode(),
       zoom: this.zoomLevel,
     });
   }
@@ -284,6 +333,7 @@ export class GameScene extends Phaser.Scene {
 
   private cleanup(): void {
     this.input.off(Phaser.Input.Events.POINTER_MOVE, this.onPointerMove, this);
+    this.scale.off(Phaser.Scale.Events.RESIZE, this.onResize, this);
     this.hud.destroy();
     this.setCanvasPixelated(false);
     this.worldView.destroy();

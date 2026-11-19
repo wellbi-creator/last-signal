@@ -11,6 +11,7 @@ export interface HudActions {
   onNewSeed(): void;
   onToggleGrid(): void;
   onToggleBiomes(): void;
+  onCycleObjects(): void;
   onVerifyHash(): void;
   onCycleZoom(): void;
   /** Нажатие на мини-карту: доли мира 0…1 по горизонтали и вертикали. */
@@ -20,24 +21,40 @@ export interface HudActions {
 export interface HudButtonState {
   grid: boolean;
   biomes: boolean;
+  /** Показ объектов: обычный, с габаритами или скрыты. */
+  objects: 'shown' | 'bounds' | 'hidden';
   zoom: number;
 }
 
 const STYLE = `
 .lsh-root{position:fixed;inset:0;pointer-events:none;z-index:10;font:12px/1.35 ui-monospace,Menlo,Consolas,monospace;color:#d6dde1;
-  padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);box-sizing:border-box}
-.lsh-panel{position:absolute;left:calc(8px + env(safe-area-inset-left));top:calc(8px + env(safe-area-inset-top));max-width:calc(100% - 16px);
-  margin:0;padding:6px 8px;background:rgba(11,15,18,.78);border:1px solid #2b363d;border-radius:6px;white-space:pre-wrap;word-break:break-all}
-.lsh-bar{position:absolute;left:0;right:0;bottom:calc(8px + env(safe-area-inset-bottom));display:flex;flex-wrap:wrap;gap:6px;justify-content:center;padding:0 8px;pointer-events:none}
-.lsh-map{position:absolute;right:calc(8px + env(safe-area-inset-right));top:calc(8px + env(safe-area-inset-top));width:128px;height:128px;
+  padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);box-sizing:border-box;
+  --lsh-map:128px;--lsh-gap:8px}
+.lsh-panel{position:absolute;left:calc(var(--lsh-gap) + env(safe-area-inset-left));top:calc(var(--lsh-gap) + env(safe-area-inset-top));
+  max-width:calc(100% - var(--lsh-map) - 3 * var(--lsh-gap) - env(safe-area-inset-left) - env(safe-area-inset-right));
+  margin:0;padding:6px 8px;background:rgba(11,15,18,.78);border:1px solid #2b363d;border-radius:6px;white-space:pre-wrap;word-break:break-all;box-sizing:border-box}
+.lsh-bar{position:absolute;left:calc(var(--lsh-gap) + env(safe-area-inset-left));right:calc(var(--lsh-gap) + env(safe-area-inset-right));
+  bottom:calc(var(--lsh-gap) + env(safe-area-inset-bottom));display:flex;flex-wrap:wrap;gap:6px;justify-content:center;pointer-events:none}
+.lsh-map{position:absolute;right:calc(var(--lsh-gap) + env(safe-area-inset-right));top:calc(var(--lsh-gap) + env(safe-area-inset-top));width:var(--lsh-map);height:var(--lsh-map);
   border:1px solid #3a464e;border-radius:4px;overflow:hidden;background:#0b0f12;pointer-events:auto;touch-action:none}
 .lsh-map canvas{display:block;width:100%;height:100%;image-rendering:pixelated}
 .lsh-view{position:absolute;box-sizing:border-box;border:1px solid #f2b84b;background:rgba(242,184,75,.15);pointer-events:none}
-@media (max-width:520px){.lsh-root{font-size:11px}.lsh-map{width:96px;height:96px}}
 .lsh-btn{pointer-events:auto;min-height:40px;min-width:44px;padding:6px 12px;font:inherit;font-size:13px;color:#d6dde1;background:rgba(11,15,18,.82);
-  border:1px solid #3a464e;border-radius:6px;cursor:pointer;touch-action:manipulation}
+  border:1px solid #3a464e;border-radius:6px;cursor:pointer;touch-action:manipulation;white-space:nowrap}
 .lsh-btn[aria-pressed="true"]{border-color:#f2b84b;color:#f2b84b}
 .lsh-btn:active{background:rgba(40,52,60,.95)}
+.lsh-short{display:none}
+/* Узкий экран (портрет телефона): карта меньше. */
+@media (max-width:520px){.lsh-root{font-size:11px;--lsh-map:96px}}
+/* Горизонтальный экран телефона (Landscape First): низкая высота. Компактная панель, короткие подписи,
+   кнопки в один ряд. Поле игры остаётся свободным: HUD занимает только углы и нижнюю кромку. */
+@media (max-height:480px){
+  .lsh-root{font-size:10px;line-height:1.25;--lsh-map:84px;--lsh-gap:6px}
+  .lsh-panel{padding:3px 5px}
+  .lsh-bar{gap:4px}
+  .lsh-btn{min-height:34px;min-width:40px;padding:3px 8px;font-size:11px}
+  .lsh-full{display:none}.lsh-short{display:inline}
+}
 `;
 
 /** Сторона мини-карты в пикселях (равна стороне мира в тайлах). */
@@ -52,6 +69,12 @@ export class DebugHud {
   private readonly viewRect: HTMLDivElement;
   private readonly gridButton: HTMLButtonElement;
   private readonly biomesButton: HTMLButtonElement;
+  private readonly objectsFull: HTMLSpanElement;
+  private readonly objectsShort: HTMLSpanElement;
+  private readonly objectsButton: HTMLButtonElement;
+  private readonly compactQuery: MediaQueryList | null;
+  private lastPrimary: readonly string[] = [];
+  private lastDetails: readonly string[] = [];
   private readonly zoomButton: HTMLButtonElement;
   private readonly panelButton: HTMLButtonElement;
 
@@ -90,24 +113,36 @@ export class DebugHud {
     });
     this.root.append(this.panel, this.mapBox, bar);
 
-    const button = (label: string, handler: () => void): HTMLButtonElement => {
+    const button = (full: string, short: string, handler: () => void): HTMLButtonElement => {
       const element = document.createElement('button');
       element.type = 'button';
       element.className = 'lsh-btn';
-      element.textContent = label;
+      const fullLabel = document.createElement('span');
+      fullLabel.className = 'lsh-full';
+      fullLabel.textContent = full;
+      const shortLabel = document.createElement('span');
+      shortLabel.className = 'lsh-short';
+      shortLabel.textContent = short;
+      element.append(fullLabel, shortLabel);
       element.addEventListener('click', handler);
       bar.appendChild(element);
       return element;
     };
-    button('← Меню', actions.onMenu);
-    button('Новый seed', actions.onNewSeed);
-    this.gridButton = button('Сетка чанков', actions.onToggleGrid);
-    this.biomesButton = button('Биомы', actions.onToggleBiomes);
-    button('Проверить хеш', actions.onVerifyHash);
-    this.zoomButton = button('Масштаб ×1', actions.onCycleZoom);
-    this.panelButton = button('Панель', () => this.togglePanel());
+    button('← Меню', '← Меню', actions.onMenu);
+    button('Новый seed', 'Seed', actions.onNewSeed);
+    this.gridButton = button('Сетка чанков', 'Сетка', actions.onToggleGrid);
+    this.biomesButton = button('Биомы', 'Биомы', actions.onToggleBiomes);
+    this.objectsButton = button('Объекты', 'Объекты', actions.onCycleObjects);
+    this.objectsFull = this.objectsButton.children[0] as HTMLSpanElement;
+    this.objectsShort = this.objectsButton.children[1] as HTMLSpanElement;
+    button('Проверить хеш', 'Хеш', actions.onVerifyHash);
+    this.zoomButton = button('Масштаб ×1', '×1', actions.onCycleZoom);
+    this.panelButton = button('Панель', 'Панель', () => this.togglePanel());
     this.panelButton.setAttribute('aria-pressed', 'true');
     parent.appendChild(this.root);
+    this.compactQuery =
+      typeof window.matchMedia === 'function' ? window.matchMedia('(max-height: 480px)') : null;
+    this.compactQuery?.addEventListener('change', () => this.renderLines());
   }
 
   /** Рисует мини-карту: пиксели RGBA размером MAP_SIZE × MAP_SIZE (1 пиксель = 1 тайл). */
@@ -125,15 +160,39 @@ export class DebugHud {
     style.height = `${(height * 100).toFixed(2)}%`;
   }
 
-  /** Заменяет текст панели. */
-  setLines(lines: readonly string[]): void {
-    this.panel.textContent = lines.join('\n');
+  /**
+   * Заменяет текст панели. `primary` — главное (показывается всегда), `details` — подробности:
+   * на низком горизонтальном экране телефона они скрыты, чтобы панель не закрывала поле игры.
+   */
+  setLines(primary: readonly string[], details: readonly string[] = []): void {
+    this.lastPrimary = primary;
+    this.lastDetails = details;
+    this.renderLines();
+  }
+
+  private renderLines(): void {
+    const compact = this.compactQuery?.matches === true;
+    this.panel.textContent = (
+      compact ? this.lastPrimary : [...this.lastPrimary, ...this.lastDetails]
+    ).join('\n');
   }
 
   setButtons(state: HudButtonState): void {
     this.gridButton.setAttribute('aria-pressed', String(state.grid));
     this.biomesButton.setAttribute('aria-pressed', String(state.biomes));
-    this.zoomButton.textContent = `Масштаб ×${state.zoom}`;
+    const objectsLabel =
+      state.objects === 'shown'
+        ? 'Объекты'
+        : state.objects === 'bounds'
+          ? 'Объекты+габариты'
+          : 'Объекты: выкл';
+    this.objectsFull.textContent = objectsLabel;
+    this.objectsShort.textContent = state.objects === 'bounds' ? 'Габариты' : objectsLabel;
+    this.objectsButton.setAttribute('aria-pressed', String(state.objects !== 'hidden'));
+    const zoomFull = this.zoomButton.children[0];
+    const zoomShort = this.zoomButton.children[1];
+    if (zoomFull) zoomFull.textContent = `Масштаб ×${state.zoom}`;
+    if (zoomShort) zoomShort.textContent = `×${state.zoom}`;
   }
 
   destroy(): void {
