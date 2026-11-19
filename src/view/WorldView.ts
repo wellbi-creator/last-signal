@@ -5,6 +5,9 @@ import type { GameEvents } from '../core/events.ts';
 import type { ChunkManager } from '../systems/world/ChunkManager.ts';
 import { ChunkView } from './ChunkView.ts';
 import type { ViewMode } from './ChunkView.ts';
+import { loadObjectsData } from '../systems/world/objectData.ts';
+import { ObjectView } from './ObjectView.ts';
+import type { ObjectMode } from './ObjectView.ts';
 
 const CHUNK_PIXELS = CHUNK_SIZE * TILE_SIZE;
 
@@ -17,6 +20,11 @@ export class WorldView {
   private readonly views: Array<ChunkView | undefined> = new Array<ChunkView | undefined>(
     WORLD_CHUNKS * WORLD_CHUNKS,
   ).fill(undefined);
+  private readonly objectViews: Array<ObjectView | undefined> = new Array<ObjectView | undefined>(
+    WORLD_CHUNKS * WORLD_CHUNKS,
+  ).fill(undefined);
+  private readonly objectsData = loadObjectsData();
+  private objectMode: ObjectMode = 'shown';
   private readonly grid: Phaser.GameObjects.Graphics;
   private readonly unsubscribe: Array<() => void> = [];
   private mode: ViewMode = 'terrain';
@@ -49,6 +57,24 @@ export class WorldView {
     }
   }
 
+  getObjectMode(): ObjectMode {
+    return this.objectMode;
+  }
+
+  /** Меняет показ объектов; в режиме «Биомы» объекты скрыты независимо от этой настройки. */
+  setObjectMode(mode: ObjectMode): void {
+    if (mode === this.objectMode) return;
+    this.objectMode = mode;
+    for (const chunk of this.manager.loaded()) this.showObjects(chunk.cx, chunk.cy);
+  }
+
+  /** Число спрайтов объектов в сцене (для отладочной панели). */
+  spriteCount(): number {
+    let count = 0;
+    for (const view of this.objectViews) if (view !== undefined) count += view.spriteCount();
+    return count;
+  }
+
   isGridVisible(): boolean {
     return this.gridVisible;
   }
@@ -72,6 +98,8 @@ export class WorldView {
     for (let i = 0; i < this.views.length; i++) {
       this.views[i]?.destroy();
       this.views[i] = undefined;
+      this.objectViews[i]?.destroy();
+      this.objectViews[i] = undefined;
     }
     this.grid.destroy();
   }
@@ -82,13 +110,26 @@ export class WorldView {
     const index = cy * WORLD_CHUNKS + cx;
     this.views[index]?.destroy();
     this.views[index] = new ChunkView(this.scene, chunk, this.mode);
+    this.showObjects(cx, cy);
     if (this.gridVisible) this.redrawGrid();
+  }
+
+  /** (Пере)создаёт спрайты объектов чанка; старые всегда уничтожаются первыми. */
+  private showObjects(cx: number, cy: number): void {
+    const index = cy * WORLD_CHUNKS + cx;
+    this.objectViews[index]?.destroy();
+    this.objectViews[index] = undefined;
+    const chunk = this.manager.get(cx, cy);
+    if (chunk === undefined || this.mode !== 'terrain' || this.objectMode === 'hidden') return;
+    this.objectViews[index] = new ObjectView(this.scene, chunk, this.objectsData, this.objectMode);
   }
 
   private hide(cx: number, cy: number): void {
     const index = cy * WORLD_CHUNKS + cx;
     this.views[index]?.destroy();
     this.views[index] = undefined;
+    this.objectViews[index]?.destroy();
+    this.objectViews[index] = undefined;
     if (this.gridVisible) this.redrawGrid();
   }
 
